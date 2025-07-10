@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../model/note_model.dart';
 import '../services/database_helper.dart';
 import 'package:hive/hive.dart';
 import 'package:lottie/lottie.dart';
+import '../theme/theme_notifier.dart';
+import 'note_preview_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,9 +21,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   String _sortOption = 'Newest First';
 
-  // ✅ ADDED: Selection state for multi-select delete
   Set<String> _selectedNoteIds = {};
   bool _isSelectionMode = false;
+
+  // ✅ Category filtering
+  String? _selectedCategory;
+
+  final Map<String, Color> categoryColors = {
+    'Work': Colors.deepOrangeAccent,
+    'Personal': Colors.tealAccent,
+    'Ideas': Colors.amberAccent,
+    'Other': Colors.purpleAccent,
+  };
+
 
   @override
   void initState() {
@@ -72,7 +85,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return notes.where((note) {
       final titleLower = note.title.toLowerCase();
       final contentLower = note.content.toLowerCase();
-      return titleLower.contains(searchLower) || contentLower.contains(searchLower);
+      final matchesQuery = titleLower.contains(searchLower) || contentLower.contains(searchLower);
+      final matchesCategory = _selectedCategory == null || note.category == _selectedCategory;
+      return matchesQuery && matchesCategory;
     }).toList();
   }
 
@@ -82,7 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // ✅ ADDED: Selection toggle logic
   void _toggleSelection(String noteId) {
     setState(() {
       if (_selectedNoteIds.contains(noteId)) {
@@ -101,7 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // ✅ ADDED: Delete selected notes
   Future<void> _deleteSelectedNotes() async {
     final notesToDelete = _notes.where((note) => _selectedNoteIds.contains(note.id)).toList();
     final backupNotes = [...notesToDelete];
@@ -140,7 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -151,7 +163,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // ✅ UPDATED: Show selection count or normal title
         title: _isSelectionMode
             ? Text('${_selectedNoteIds.length} selected', style: TextStyle(color: Colors.white))
             : Text('My Notes', style: TextStyle(color: Colors.white)),
@@ -163,12 +174,16 @@ class _HomeScreenState extends State<HomeScreen> {
         )
             : null,
         actions: [
+          IconButton(
+            icon: Icon(Icons.brightness_6, color: Theme.of(context).iconTheme.color),
+            onPressed: () {
+              Provider.of<ThemeNotifier>(context, listen: false).toggleTheme();
+            },
+          ),
           if (_isSelectionMode) ...[
             IconButton(
               icon: Icon(
-                _selectedNoteIds.length == _filteredNotes.length
-                    ? Icons.select_all
-                    : Icons.done_all,
+                _selectedNoteIds.length == _filteredNotes.length ? Icons.select_all : Icons.done_all,
                 color: Colors.white,
               ),
               onPressed: _toggleSelectAll,
@@ -177,8 +192,29 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.delete, color: Colors.white),
               onPressed: _deleteSelectedNotes,
             ),
-          ]
-          else
+          ] else ...[
+            IconButton(
+              icon: Icon(Icons.category, color: Colors.white),
+              onPressed: () async {
+                final selected = await showMenu<String?>(
+                  context: context,
+                  position: RelativeRect.fromLTRB(1000, 80, 10, 0),
+                  items: [
+                    const PopupMenuItem(value: null, child: Text('All')),
+                    ...['Work', 'Personal', 'Ideas', 'Other'].map((category) =>
+                        PopupMenuItem(value: category, child: Text(category)),
+                    ),
+                  ],
+                );
+
+                if (selected != null || _selectedCategory != null) {
+                  setState(() {
+                    _selectedCategory = selected;
+                    _filteredNotes = _applySearchFilter(_notes, _searchController.text);
+                  });
+                }
+              },
+            ),
             PopupMenuButton<String>(
               onSelected: (value) async {
                 final box = Hive.box('settingsBox');
@@ -195,6 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               icon: const Icon(Icons.sort, color: Colors.white),
             )
+          ]
         ],
       ),
       body: Container(
@@ -250,23 +287,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? note.content.split('\n').first.substring(0, 50) + '...'
                       : note.content.split('\n').first;
 
-                  final isSelected = _selectedNoteIds.contains(note.id); // ✅
+                  final isSelected = _selectedNoteIds.contains(note.id);
 
                   return GestureDetector(
                     onTap: () {
                       if (_isSelectionMode) {
-                        _toggleSelection(note.id); // ✅
+                        _toggleSelection(note.id);
                       } else {
-                        Navigator.pushNamed(
+                        Navigator.push(
                           context,
-                          '/add',
-                          arguments: {'note': note},
+                          MaterialPageRoute(
+                            builder: (_) => NotePreviewScreen(note: note),
+                          ),
                         ).then((value) {
                           if (value == true) _loadNotes();
                         });
+
                       }
                     },
-                    onLongPress: () => _toggleSelection(note.id), // ✅
+                    onLongPress: () => _toggleSelection(note.id),
                     child: Container(
                       color: isSelected ? Colors.blueGrey[700] : Colors.transparent,
                       child: Column(
@@ -277,10 +316,35 @@ class _HomeScreenState extends State<HomeScreen> {
                               note.title,
                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
-                            subtitle: Text(
-                              firstLine,
-                              style: TextStyle(color: Colors.white70),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  firstLine,
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                if (note.category != null && note.category!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: categoryColors[note.category] ?? Colors.grey,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        note.category!,
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
+
                             trailing: _isSelectionMode
                                 ? Icon(
                               isSelected
@@ -324,8 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         id: note.id,
                                         isPinned: !note.isPinned,
                                       );
-                                      await NoteDataSource.updateNoteById(
-                                          note.id, updatedNote);
+                                      await NoteDataSource.updateNoteById(note.id, updatedNote);
                                       _loadNotes();
                                     }
                                   },
@@ -336,8 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     PopupMenuItem(
                                       value: 'delete',
-                                      child: Text('Delete',
-                                          style: TextStyle(color: Colors.red)),
+                                      child: Text('Delete', style: TextStyle(color: Colors.red)),
                                     ),
                                   ],
                                 ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:my_notes/screens/add_note_screen.dart';
 import 'package:my_notes/screens/splash_screen.dart';
-
+import 'package:my_notes/theme/theme_notifier.dart';
+import 'package:provider/provider.dart';
 import 'model/note_model.dart';
 import 'screens/home_screen.dart';
 
@@ -16,12 +16,16 @@ void main() async {
     Hive.registerAdapter(NoteAdapter());
     await Hive.openBox<Note>('notesBox');
     await Hive.openBox('settingsBox');
-    print("Hive initialized and box opened successfully");
   } catch (e) {
     print("Hive initialization error: $e");
   }
 
-  runApp(MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeNotifier(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -29,13 +33,28 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
+    final isDark = themeNotifier.isDarkMode;
+
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "My Notes",
-      theme: ThemeData(
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        appBarTheme: AppBarTheme(color: Colors.black54)
+      theme: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+        ),
       ),
+      darkTheme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF1C1C1C),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1C1C1C),
+          foregroundColor: Colors.white,
+        ),
+      ),
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       initialRoute: '/',
       onGenerateRoute: (settings) {
         if (settings.name == '/') {

@@ -19,11 +19,15 @@ class Note extends HiveObject {
   @HiveField(4)
   final bool isPinned;
 
+  @HiveField(5)
+  String? category;
+
   Note({
     required this.title,
     required this.content,
     required this.dateTime,
     required this.id,
     this.isPinned = false,
+    this.category,
   });
 }
