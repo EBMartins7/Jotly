@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../model/note_model.dart';
 import '../services/database_helper.dart';
+import '../theme/theme_notifier.dart';
 import 'package:uuid/uuid.dart';
 
 class AddNoteScreen extends StatefulWidget {
@@ -66,8 +68,13 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Provider.of<ThemeNotifier>(context).isDarkMode;
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+    final labelColor = isDark ? Colors.white54 : Colors.black54;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1C1C1C),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.lightBlue),
@@ -79,10 +86,10 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
             onPressed: _saveNote,
           ),
         ],
-        backgroundColor: const Color(0xFF1C1C1C),
+        backgroundColor: backgroundColor,
       ),
       body: Container(
-        color: const Color(0xFF1C1C1C),
+        color: backgroundColor,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
             left: 16,
@@ -97,15 +104,15 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                 controller: _titleController,
                 decoration: InputDecoration(
                   hintText: 'Title',
-                  hintStyle: TextStyle(color: Colors.white38),
+                  hintStyle: TextStyle(color: labelColor),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white38),
+                    borderSide: BorderSide(color: labelColor),
                   ),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: labelColor.withOpacity(0.6)),
                   ),
                 ),
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: textColor),
                 maxLines: 1,
               ),
               SizedBox(height: 16),
@@ -113,15 +120,15 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                 controller: _contentController,
                 decoration: InputDecoration(
                   hintText: 'Note',
-                  hintStyle: TextStyle(color: Colors.white38),
+                  hintStyle: TextStyle(color: labelColor),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white38),
+                    borderSide: BorderSide(color: labelColor),
                   ),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: labelColor.withOpacity(0.6)),
                   ),
                 ),
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: textColor),
                 keyboardType: TextInputType.multiline,
                 maxLines: null,
               ),
@@ -130,30 +137,31 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                 value: _selectedCategory,
                 decoration: InputDecoration(
                   labelText: 'Category (optional)',
-                  labelStyle: TextStyle(color: Colors.white54),
+                  labelStyle: TextStyle(color: labelColor),
                   filled: true,
-                  fillColor: Colors.black26,
+                  fillColor: isDark ? Colors.black26 : Colors.grey[200],
                   border: OutlineInputBorder(),
                 ),
-                dropdownColor: Colors.grey[900],
-                iconEnabledColor: Colors.white,
+                dropdownColor: isDark ? Colors.grey[900] : Colors.white,
+                iconEnabledColor: textColor,
                 items: [
                   const DropdownMenuItem<String>(
                     value: null,
-                    child: Text('None', style: TextStyle(color: Colors.white)),
+                    child: Text('None'),
                   ),
                   ..._categoryOptions.map((category) {
-                  return DropdownMenuItem<String>(
-                    value: category,
-                    child: Text(category, style: TextStyle(color: Colors.white)),
-                  );
-                }).toList(),
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList(),
                 ],
                 onChanged: (value) {
                   setState(() {
                     _selectedCategory = value;
                   });
                 },
+                style: TextStyle(color: textColor),
               ),
             ],
           ),

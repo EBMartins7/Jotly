@@ -28,7 +28,6 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     Timer(const Duration(seconds: 4), () {
-      print("🔁 Navigating to /home");
       Navigator.pushReplacementNamed(context, '/home');
     });
   }
@@ -41,8 +40,11 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: FadeTransition(
           opacity: _animation,
@@ -56,11 +58,9 @@ class _SplashScreenState extends State<SplashScreen>
                     Padding(
                       padding: const EdgeInsets.only(top: 40.0),
                       child: Text(
-                        'My Notes',
-                        style: TextStyle(
-                          fontSize: 32,
+                        'Jotly',
+                        style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                       ),
                     ),
@@ -76,12 +76,16 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Column(
                         children: [
                           CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.lightBlue),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark ? Colors.lightBlueAccent : Colors.lightBlue,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Loading',
-                            style: TextStyle(color: Colors.black54),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                            ),
                           ),
                         ],
                       ),

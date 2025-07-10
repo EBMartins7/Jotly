@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
-import 'package:my_notes/screens/add_note_screen.dart';
-import 'package:my_notes/screens/splash_screen.dart';
-import 'package:my_notes/theme/theme_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:jotly/screens/add_note_screen.dart';
+import 'package:jotly/screens/splash_screen.dart';
+import 'package:jotly/theme/theme_notifier.dart';
 import 'model/note_model.dart';
 import 'screens/home_screen.dart';
 
